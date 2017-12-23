@@ -297,14 +297,16 @@ static int alloc_pebs_buffer(int cpu)
 	 * HSW+ already provides us the eventing ip; no need to allocate this
 	 * buffer then.
 	 */
-	if (x86_pmu.intel_cap.pebs_format < 2) {
-		ibuffer = kzalloc_node(PEBS_FIXUP_SIZE, GFP_KERNEL, node);
-		if (!ibuffer) {
-			kfree(buffer);
-			return -ENOMEM;
-		}
-		per_cpu(insn_buffer, cpu) = ibuffer;
+	/*
+	 * However, to expose LBR and precise IP to non PEBS events such as 
+	 * breakpoint, we need to allocate the buffer 
+	 * Hence commented if (x86_pmu.intel_cap.pebs_format < 2) { */
+	ibuffer = kzalloc_node(PEBS_FIXUP_SIZE, GFP_KERNEL, node);
+	if (!ibuffer) {
+		kfree(buffer);
+		return -ENOMEM;
 	}
+	per_cpu(insn_buffer, cpu) = ibuffer;
 
 	max = x86_pmu.pebs_buffer_size / x86_pmu.pebs_record_size;
 
@@ -963,7 +965,7 @@ void intel_pmu_pebs_disable_all(void)
 		wrmsrl(MSR_IA32_PEBS_ENABLE, 0);
 }
 
-static int intel_pmu_pebs_fixup_ip(struct pt_regs *regs)
+int intel_lbr_fixup_ip(struct pt_regs *regs)
 {
 	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
 	unsigned long from = cpuc->lbr_entries[0].from;
@@ -972,12 +974,6 @@ static int intel_pmu_pebs_fixup_ip(struct pt_regs *regs)
 	int is_64bit = 0;
 	void *kaddr;
 	int size;
-
-	/*
-	 * We don't need to fixup if the PEBS assist is fault like
-	 */
-	if (!x86_pmu.intel_cap.pebs_trap)
-		return 1;
 
 	/*
 	 * No LBR entry, no basic block, no rewinding
@@ -1055,6 +1051,17 @@ static int intel_pmu_pebs_fixup_ip(struct pt_regs *regs)
 	 * never matched the given IP, either the TO or the IP got corrupted.
 	 */
 	return 0;
+}
+
+static int intel_pmu_pebs_fixup_ip(struct pt_regs *regs)
+{
+       /*
+        * We don't need to fixup if the PEBS assist is fault like
+        */
+       if (!x86_pmu.intel_cap.pebs_trap)
+               return 1;
+
+       return intel_lbr_fixup_ip(regs);
 }
 
 static inline u64 intel_hsw_weight(struct pebs_record_skl *pebs)
