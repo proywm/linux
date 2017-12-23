@@ -516,7 +516,7 @@ static int hw_breakpoint_handler(struct die_args *args)
 		} else {
 			fixup_regs.flags &= ~PERF_EFLAGS_EXACT;
 		}
-		perf_bp_event(bp, args->regs);
+		perf_bp_event(bp, &fixup_regs);
 
 		/*
 		 * Set up resume flag to avoid breakpoint recursion when
