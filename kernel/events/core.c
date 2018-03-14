@@ -2679,6 +2679,11 @@ static int perf_event_modify_attr(struct perf_event *event,
 	}
 }
 
+int perf_event_modify_attr_(struct perf_event *event,
+                                  struct perf_event_attr *attr)
+{
+	perf_event_modify_attr(event, attr);
+}
 static void ctx_sched_out(struct perf_event_context *ctx,
 			  struct perf_cpu_context *cpuctx,
 			  enum event_type_t event_type)
