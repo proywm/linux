@@ -2,6 +2,7 @@
 #include <linux/bitops.h>
 #include <linux/types.h>
 #include <linux/slab.h>
+#include <linux/hw_breakpoint.h>
 
 #include <asm/perf_event.h>
 #include <asm/insn.h>
@@ -1352,10 +1353,12 @@ static void __intel_pmu_pebs_event(struct perf_event *event,
 			if(countEntry>0)
                 	{
 				witch_bp_update(data.addr);
+				printk(KERN_INFO "came to update BP\n");
 			}
 			else
 			{
 				witch_bp_init(data.addr);
+				printk(KERN_INFO "came to Init BP\n");
 				countEntry++;
 			}
 		}
