@@ -474,16 +474,19 @@ modify_user_hw_breakpoint_check(struct perf_event *bp, struct perf_event_attr *a
 		return -EINVAL;
 
 	err = validate_hw_breakpoint(bp);
+	printk(KERN_INFO "validate_hw_breakpoint ret val %d and old_type %d -attr.bp_type %d",err, old_type, bp->attr.bp_type);
+//	return 0;
 	if (!err && modify)
 		err = modify_bp_slot(bp, old_type);
 
 	if (err) {
+		printk(KERN_INFO "failed at validate_hw_breakpoint %d",err);
 		bp->attr.bp_addr = old_addr;
 		bp->attr.bp_type = old_type;
 		bp->attr.bp_len  = old_len;
 		return err;
 	}
-
+//	return 0;
 	bp->attr.disabled = attr->disabled;
 	return 0;
 }

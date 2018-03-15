@@ -1270,23 +1270,23 @@ static void sample_hbp_handler(struct perf_event *bp,
         {       
                 //stop witchBP
         //      perf_event_disable(bp);
-        //      printk(KERN_INFO " value is changed and witchBPCounter %d \n", witchBPCounter);
+     //           printk(KERN_INFO " value is changed and witchBPCounter %d \n", witchBPCounter);
         //      witchAttr->disabled = 1;
                 witchBPCounter = 0;
         }
 }
 
-void * dummySpaceAtHeap;
+int dummySpaceAtHeap[1024];
 static int witch_bp_init(unsigned long addr)
 {
         int ret;
-        dummySpaceAtHeap = kmalloc(1,GFP_KERNEL);
+//        dummySpaceAtHeap = kmalloc(1024,GFP_KERNEL);
         hw_breakpoint_init(&witchAttr);
         witchAttr.exclude_user = 1;
         witchAttr.exclude_kernel = 0;
-        witchAttr.bp_addr = addr;//dummySpaceAtHeap;//addr;
+        witchAttr.bp_addr = &dummySpaceAtHeap[100];//addr;
         witchAttr.bp_len = HW_BREAKPOINT_LEN_1;
-        witchAttr.bp_type = HW_BREAKPOINT_W | HW_BREAKPOINT_R;
+        witchAttr.bp_type = HW_BREAKPOINT_W;// | HW_BREAKPOINT_R;
 
         witchBP = register_wide_hw_breakpoint(&witchAttr, sample_hbp_handler, NULL);
         if (IS_ERR((void __force *)witchBP)) {
@@ -1308,14 +1308,22 @@ static int witch_bp_update(unsigned long addr)
 {
         struct perf_event **pevent;
         int cpu;
-        for_each_online_cpu(cpu) {
-                pevent = per_cpu_ptr(witchBP, cpu);
-//              perf_event_disable(*pevent);
-                //perf_event_disable_local(*pevent);
- 	        witchAttr.bp_addr = dummySpaceAtHeap;
-		perf_event_modify_attr_(*pevent, &witchAttr);
+//	get_online_cpus();
+        //for_each_online_cpu(cpu) {
+          //      pevent = per_cpu_ptr(witchBP, cpu);
+ 	        //witchAttr.bp_addr = &dummySpaceAtHeap[100];
+	//	perf_event_modify_attr_(*pevent, &witchAttr);
         //      printk(KERN_INFO "event state %d \n", (*pevent)->state);
-        }
+       // }
+//	put_online_cpus();
+	cpu = get_cpu();
+	witchAttr.bp_addr = addr;//&dummySpaceAtHeap[100];
+	pevent = per_cpu_ptr(witchBP, cpu);
+	//perf_event_disable_local(*pevent);
+	perf_event_modify_attr_(*pevent, &witchAttr);
+//	__perf_event_enable();
+	__perf_event_enable_(*pevent);
+	put_cpu();
 }
 
 static int countEntry = 0;
@@ -1344,9 +1352,11 @@ static void __intel_pmu_pebs_event(struct perf_event *event,
 	//check the type of sample
         int misc = perf_misc_flags(&regs);
         int enableWitchProcessing = 0;
+	printk(KERN_INFO "Inside__intel_pmu_pebs_event\n");
 	if(PERF_RECORD_MISC_KERNEL == (misc & PERF_RECORD_MISC_CPUMODE_MASK))
 	{
                 //enableWitchProcessing = 1;
+		printk(KERN_INFO "sample Type PERF_RECORD_MISC_KERNEL\n");
 		if(!((data.addr & ~(THREAD_SIZE - 1))  ==
                 	(kernel_stack_pointer(&regs) & ~(THREAD_SIZE - 1))))
         	{

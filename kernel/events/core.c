@@ -2461,6 +2461,10 @@ static void __perf_event_enable(struct perf_event *event,
 	ctx_resched(cpuctx, task_ctx, get_event_type(event));
 }
 
+void __perf_event_enable_(struct perf_event *event)
+{
+	event_function_call(event, __perf_event_enable, NULL);
+}
 /*
  * Enable a event.
  *
@@ -2652,13 +2656,15 @@ static int perf_event_modify_breakpoint(struct perf_event *bp,
 	_perf_event_disable(bp);
 
 	err = modify_user_hw_breakpoint_check(bp, attr, true);
+	printk(KERN_INFO "modify_user_hw_breakpoint_check ret val %d\n",err);
+//	return 0;
 	if (err) {
 		if (!bp->attr.disabled)
 			_perf_event_enable(bp);
 
 		return err;
 	}
-
+	return 0;
 	if (!attr->disabled)
 		_perf_event_enable(bp);
 	return 0;
