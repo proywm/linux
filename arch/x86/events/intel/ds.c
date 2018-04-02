@@ -1319,8 +1319,9 @@ static int witch_bp_update(unsigned long addr)
 	cpu = get_cpu();
 	witchAttr.bp_addr = addr;//&dummySpaceAtHeap[100];
 	pevent = per_cpu_ptr(witchBP, cpu);
-	//perf_event_disable_local(*pevent);
-	perf_event_modify_attr_(*pevent, &witchAttr);
+	perf_event_disable_local(*pevent);
+//	perf_event_modify_attr_(*pevent, &witchAttr);
+	modify_user_hw_breakpoint_check(*pevent, &witchAttr, false);
 //	__perf_event_enable();
 	__perf_event_enable_(*pevent);
 	put_cpu();
